@@ -1,0 +1,149 @@
+framwork
+expressjs.com
+
+0. express - routing, middleware
+    1) routing
+        get() : route, routing ; set the direction. Response according to path
+
+        if(pathname === '/'){if(queryData.id === undefined)
+        ->
+        app.get('/', function(request, response){ // = queryData.id is undefined
+        or
+        app.get('/', (req, res) => res.send('Hello World!'))
+    2) middleware
+        (1) Application-level middleware : Register a middleware to "app" obj with use(), get() or post()
+            - with use() : for both get and post method
+            ex) app.get('/', function(){}) 에서 function은 미들웨어인데 get방식에서도 path가 / 일때만 실행되는 미들웨어이다.
+            ex) app.get('*', function(){})
+                이 미들웨어는 get방식인 모든 path에서 실행됨
+            ex) app.use(compression()); 
+                post, get 모든 방식에서 실행되고 모든 path에서 실행된다
+        (2) middleware is a func and runs in order
+        (3) for all "app"[all "app"s callback's request] caz you code app.use( middleware )
+
+1. install
+    npm init
+    npm install --save express
+
+2. Strengths
+    The pevious project are less readable due to overlapping if statements.
+
+3. Route parameters : The params is in the form of path(/), not qs(?) for pretty[clean] url
+                      ex) users/?Id=34 -> users/34
+    Route path : /users/:userId/books/:booId
+        ('/:' : users's value will be userId)
+    Requert URL : http://localhost:3000/users/34/books/8989 
+    req.params: { "userId": "34", "bookId": "8989" }
+    Change queryData.Id to request.params.userId when you wanna get userId's value. 
+        (because queryData catch querystring('?'))
+    <a href="/?id=${filelist[i]}">  ->  <a href="/users/${filelist[i]}"> 
+    * Error: queryData is not defined -> Change hyperlink like the code above
+    i.e. <a href="/update/${sanitizedTitle}">update</a>  and  app.get('/update/:pageId', callback)  
+        = Set linkPath to go there[the path] and set route to catch the there
+
+    =>  app.get('/users/:userId/books/:bookId', function(reeq, res){
+            res.send(req.params)
+        })
+
+4. middleware - body-parser : for post data
+    http://expressjs.com/en/resources/middleware/body-parser.html
+    * Built-in middleware <-> Third-party middleware
+        The 2nd one is a non-official middleware that express didn't make it, i.e. outsiders made it.
+    1) npm install body-parser --save
+        body: The information requested by the web browser
+        header: The data explaining body
+    2) var bodyParser = require('body-parser');
+    3) app.use(bodyParser.urlencoded({ extended: false })) 
+        Whenever the post data is transmitted by the user, bodyParser parses and calls a callback corresponding to the path 
+        (ex. app.post('/create_process' 의 callback). 
+        cf) When parsing json, not form, "app.use(bodyParser.json())"
+    4) app.post('/create_process', function(request, response){
+        var post = request.body; // 'Body' property is added to the 'request' by bodyParser.
+
+5. middleware - compression(압축) : When compressed data is sent, receive it, release it, and use it.
+    1) $ npm install compression --save
+       var compression = require('compression');
+       app.use(compression()); // compression module[func] returns middleware which compress all responses and the middleware is equipped to 'app' by 'use'
+    +) Check requests in Network
+        Inspect -> Network -> Click -> Heders -> Response Headers -> content-encoding:gzip 
+        (you can check it when the compressed data size is larger than about 1kB)
+
+6. Creating a middleware
+    ex) https://expressjs.com/ko/guide/writing-middleware.html
+        "app"이 요청을 수신할 때마다, 앱은 “LOGGED”라는 메시지를 터미널에 인쇄하는 예
+        var express = require('express');
+        var app = express()
+        var myLogger = function(req, res, next){
+            console.log("LOGGED");
+            next()
+        }
+        app.use(myLogger)
+        app.get('/', function(req, res){
+            // console.log(req)
+            // console.log(req.myLogger)
+            res.send('Hello World!')
+        })
+        app.listen(3000)
+    1) Let's practice!
+        What. Treat  commonly used " fs.readdir('./data', function(error, filelist){ "  as middleware.
+        1. Make middleware
+        2. Delete all the code, fs.~ and Change "var list = template.list(filelist);" to "var list = template.list(request.list);"
+        
+7. The service(bring static files on web) of a static file(image, js, css etc.).
+    - with a public folder
+    - https://expressjs.com/ko/starter/static-files.html
+    - Use static middleware
+
+8. WEB3 - Express - 14 라우터 : Split main.js
+    routes 폴더에 파일들을 만들어서 main.js에 추가해나가면 빠르게 할 수 있음
+
+9. Security
+    1) Ensure your dependencies are secure
+        $ npm install nsp -g
+        $ nsp check
+
+10. WEB3 - Express - 16. express generator
+    https://expressjs.com/ko/starter/generator.html
+    to quickly create an application skeleton
+
+
+
+--------------------------------------------------
+1. query obj
+app.get('/topic', function(req, res){
+    res.send(req.query.id);
+})
+- Enter whatever in url
+    - 127.0.1:3000/topic?id=1 >> 1
+    - 127.0.1:3000/topic?id=3 >> 3
+    - if query.name, enter ?name=yu >> yu
+    - if req.query.id+','+req.query.name, enter ?id=2&name=egoing 
+        >> 1,egoing
+
+1-1. 
+app.get('/topic', function(req, res){
+    var topics = [
+        'JS is...',
+        'Nodejs is...',
+        'Express is...'
+    ];
+    res.send(topics[req.query.id]);
+})
+- if ?id=1, >> Nodejs is ...
+
+1-2. 
+app.get('/topic', function(req, res){
+    var topics = [
+        'JS is...',
+        'Nodejs is...',
+        'Express is...'
+    ];
+    var = output = `
+    <a href="/topic?id=0">JavaScript</a></br>
+    <a href="/topic?id=1">Nodejs</a></br>
+    <a href="/topic?id=2">Express</a></br></br>
+    ${topics[req.query.id]}
+    `
+    res.send(output);
+})
+- if click the hyper text, JavaScript, id will be 0
